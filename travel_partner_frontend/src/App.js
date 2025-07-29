@@ -1,17 +1,14 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate, Outlet, Link, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from "react-router-dom";
 import "./App.css";
+import DashboardNav from "./components/DashboardNav";
+import ThemeToggler from "./components/ThemeToggler";
+import StatCard from "./components/StatCard";
+import { API_BASE } from "./utils/api";
+import { loadToken, authHeader } from "./utils/authHeader";
 
 // --- Theme Context for Light Theme ---
-const ThemeContext = createContext();
-
-const COLORS = {
-  primary: "#1976d2",
-  secondary: "#424242",
-  accent: "#ff9800",
-  white: "#fff",
-  grey: "#f8f9fa",
-};
+export const ThemeContext = createContext();
 
 // --- Auth Context ---
 const AuthContext = createContext();
@@ -24,51 +21,19 @@ function useAuth() {
 function saveToken(token) {
   localStorage.setItem("authToken", token);
 }
-function loadToken() {
-  return localStorage.getItem("authToken");
-}
 function clearToken() {
   localStorage.removeItem("authToken");
 }
 
-// ---- API BASE (swap out for backend URL) ----
-const API_BASE = "/api";
-
 // ---- DASHBOARD LAYOUT ----
 function DashboardLayout() {
   const { user, logout } = useAuth();
-  const location = useLocation();
-
-  // For highlighting the selected route
-  const routes = [
-    { path: "/dashboard", label: "Dashboard", icon: "🏠" },
-    { path: "/destinations", label: "Destinations", icon: "🌍" },
-    { path: "/bookings", label: "Bookings", icon: "✈️" },
-    { path: "/itinerary", label: "Itinerary", icon: "🗺️" },
-    { path: "/profile", label: "Profile", icon: "👤" },
-  ];
-
   return (
     <div className="dashboard-root">
-      <aside className="dashboard-sidenav">
-        <div className="dashboard-logo">
-          <span style={{ color: COLORS.primary, fontWeight: 700, fontSize: 20 }}>TravelPartner</span>
-        </div>
-        <ul className="dashboard-navlist">
-          {routes.map(route => (
-            <li key={route.path} className={location.pathname === route.path ? "active" : ""}>
-              <Link to={route.path}>
-                <span className="dashboard-icon">{route.icon}</span>
-                {route.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <div className="dashboard-sidenav-bottom">
-          <ThemeToggler />
-          <button className="logout-btn" onClick={logout}>Logout</button>
-        </div>
-      </aside>
+      <DashboardNav
+        logout={logout}
+        bottomContent={<ThemeToggler ThemeContext={ThemeContext} />}
+      />
       <main className="dashboard-main">
         <div className="dashboard-topbar">
           <h2>Welcome{user && user.name ? `, ${user.name}` : ""}!</h2>
@@ -78,16 +43,6 @@ function DashboardLayout() {
         </div>
       </main>
     </div>
-  );
-}
-
-// ---- THEME TOGGLER ----
-function ThemeToggler() {
-  const { theme, toggleTheme } = useContext(ThemeContext);
-  return (
-    <button className="theme-toggle" onClick={toggleTheme} title="Change Theme">
-      {theme === "light" ? "🌙" : "☀️"}
-    </button>
   );
 }
 
@@ -138,7 +93,7 @@ function LoginPage() {
         <button type="submit" className="btn-primary" disabled={pending}>{pending ? "Signing in..." : "Sign In"}</button>
       </form>
       <div className="auth-switch">
-        Don't have an account? <Link to="/register">Register</Link>
+        Don't have an account? <a href="/register">Register</a>
       </div>
     </div>
   );
@@ -190,7 +145,7 @@ function RegisterPage() {
         <button type="submit" className="btn-primary" disabled={pending}>{pending ? "Registering..." : "Register"}</button>
       </form>
       <div className="auth-switch">
-        Already have an account? <Link to="/login">Login</Link>
+        Already have an account? <a href="/login">Login</a>
       </div>
     </div>
   );
@@ -200,24 +155,15 @@ function RegisterPage() {
 
 // PUBLIC_INTERFACE
 function DashboardHome() {
+  // Replace stats with API if needed in future.
   return (
     <div>
       <h3>Quick Stats</h3>
-      {/* Example stats - replace with live API */}
       <div className="stats-cards">
-        <StatCard label="Bookings" value="24" color={COLORS.primary} />
-        <StatCard label="Destinations" value="12" color={COLORS.secondary} />
-        <StatCard label="Planned Trips" value="8" color={COLORS.accent} />
+        <StatCard label="Bookings" value="24" color="var(--color-primary)" />
+        <StatCard label="Destinations" value="12" color="var(--color-secondary)" />
+        <StatCard label="Planned Trips" value="8" color="var(--color-accent)" />
       </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, color }) {
-  return (
-    <div className="stat-card" style={{ borderBottom: `4px solid ${color}` }}>
-      <div className="stat-value">{value}</div>
-      <div className="stat-label">{label}</div>
     </div>
   );
 }
@@ -228,7 +174,6 @@ function DestinationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Replace with API call
     async function fetchDest() {
       setLoading(true);
       try {
@@ -270,7 +215,6 @@ function BookingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Replace with API call to fetch bookings
     async function fetchBookings() {
       setLoading(true);
       try {
@@ -312,7 +256,6 @@ function ItineraryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Replace with API call
     async function fetchItins() {
       setLoading(true);
       try {
@@ -365,7 +308,6 @@ function ProfilePage() {
     e.preventDefault();
     setStatus(null);
     try {
-      // Replace with profile API
       const resp = await fetch(`${API_BASE}/user/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeader() },
@@ -397,12 +339,6 @@ function ProfilePage() {
       </form>
     </div>
   );
-}
-
-// ---- AUTH HELPERS ----
-function authHeader() {
-  const token = loadToken();
-  return token ? { Authorization: "Bearer " + token } : {};
 }
 
 // ---- AUTH PROVIDER ----
@@ -455,7 +391,7 @@ function AuthProvider({ children }) {
 // ---- AUTH GUARD ----
 function RequireAuth({ children }) {
   const { user } = useAuth();
-  const location = useLocation();
+  const location = window.location; // useLocation fails at module level sometimes
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return children;
 }
