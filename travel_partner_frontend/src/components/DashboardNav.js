@@ -25,14 +25,18 @@ function DashboardNav({ logout, bottomContent }) {
         </span>
       </div>
       <ul className="dashboard-navlist">
-        {navLinks.map(link => (
-          <li key={link.to} className={location.pathname === link.to ? "active" : ""}>
-            <Link to={link.to}>
-              <span className="dashboard-icon">{link.icon}</span>
-              {link.label}
-            </Link>
-          </li>
-        ))}
+        {navLinks.map(link => {
+          // Highlight if route is active or sub-route (e.g., /dashboard, /dashboard/stats)
+          const isActive = location.pathname === link.to || location.pathname.startsWith(link.to + "/");
+          return (
+            <li key={link.to} className={isActive ? "active" : ""}>
+              <Link to={link.to}>
+                <span className="dashboard-icon">{link.icon}</span>
+                {link.label}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
       <div className="dashboard-sidenav-bottom">
         {bottomContent}
